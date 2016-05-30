@@ -1,16 +1,19 @@
 
 import sys
 
-from collections import namedtuple
+from collections import *
 import random
-
-WordTuple = namedtuple("WordTuple", ["first_word", "second_word"])
 
 class MarkovChain:
 
-    def __init__(self, original_text=""):
+    def __init__(self, original_text="", chain_length=2):
+
+        self.chain_length = chain_length
 
         self.original_text = original_text
+
+    def __str__(self):
+        return ", ".join(self.splitted_text)
 
     @property
     def original_text(self):
@@ -26,57 +29,51 @@ class MarkovChain:
     def create_splitted_text(self):
         self.splitted_text = self.original_text.split()
 
-        if len(self.splitted_text) < 2:
-            raise Exception("Original text must contain atleast two words")
-
     def create_transition_map(self):
 
-        self.transition_map = {}
+        self.transition_map = defaultdict(list)
 
-        first_word = self.splitted_text[0]
-        second_word = self.splitted_text[1]
+        for i in range(len(self.splitted_text) - self.chain_length):
 
-        for word in self.splitted_text[2:]:
+            word_tuple = self.get_word_tuple_at(i)
+            
+            self.transition_map[word_tuple].append(self.splitted_text[i + self.chain_length])
 
-            word_tuple = WordTuple(first_word=first_word, second_word=second_word)
+    def get_word_tuple_at(self, i):
 
-            self.insert_to_transition_map(word_tuple, word)
+        t = ()
 
-            first_word = second_word
-            second_word = word
+        for word in self.splitted_text[i:i+self.chain_length]:
+            t = t + tuple([word])
 
-    def insert_to_transition_map(self, word_tuple, word):
-        if word_tuple in self.transition_map:
-            self.transition_map[word_tuple].append(word)
-        else:
-            self.transition_map[word_tuple] = [word]
+        return t
 
-    def generate_text(self, length=10, first_word=None, second_word=None):
+    def generate_text(self, length=10, first_words=None):
 
-        if length < 2:
-            raise Exception("Generated text length must be atleast two")
+        if length < self.chain_length:
+            raise Exception("Generated text length must be atleast {0}".format(self.chain_length))
+
+        if first_words == None:
+            first_words = self.get_first_words()
         
-        if first_word == None:
-            first_word = self.splitted_text[0]
-        if second_word == None:
-            second_word = self.splitted_text[1]
+        generated_words = first_words
 
-        generated_text = first_word + " " + second_word
+        word_tuple = tuple(first_words)
 
-        for i in range(length - 2):
-            word_tuple = WordTuple(first_word=first_word, second_word=second_word)
-
+        for i in range(length - self.chain_length):
             word = self.choose_next_word(word_tuple)
 
             if word == None:
                 break
 
-            generated_text += " " + word
+            generated_words = generated_words + tuple([word])
 
-            first_word = second_word
-            second_word = word
+            word_tuple = word_tuple[1:] + tuple([word])
 
-        return generated_text
+        return " ".join(generated_words)
+
+    def get_first_words(self):
+        return tuple(self.splitted_text[:self.chain_length])
 
     def choose_next_word(self, word_tuple):
         try:
@@ -93,14 +90,14 @@ def test_splitted_text():
 
     assert len(markov_chain.splitted_text) == len(test_text.split())
     assert len(markov_chain.transition_map) == len(test_text.split()) - 2
-    assert markov_chain.transition_map[WordTuple(first_word="hello", second_word="there")] == ["again"]
+    assert markov_chain.transition_map[("hello", "there")] == ["again"]
 
     test_text = "lazy dog jumped over another lazy dog"
     markov_chain.original_text = test_text
 
     assert len(markov_chain.splitted_text) == len(test_text.split())
     assert len(markov_chain.transition_map) == len(test_text.split()) - 2
-    assert markov_chain.transition_map[WordTuple(first_word="over", second_word="another")] == ["lazy"]
+    assert markov_chain.transition_map[("over", "another")] == ["lazy"]
 
 def usage():
     print("""
@@ -117,7 +114,7 @@ def main():
     f = open(sys.argv[1], 'r')
     original_text = f.read()
 
-    markov_chain = MarkovChain(original_text)
+    markov_chain = MarkovChain(original_text, chain_length=2)
 
     if len(sys.argv) < 3:
         print(markov_chain.generate_text())
