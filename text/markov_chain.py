@@ -78,7 +78,7 @@ class MarkovChain:
     def choose_next_word(self, word_tuple):
         try:
             return random.choice(self.transition_map[word_tuple])
-        except(Exception):
+        except Exception:
             return None
 
 def test_splitted_text():
@@ -102,7 +102,7 @@ def test_splitted_text():
 def usage():
     print("""
     Usage
-        python markov_chain.py [input_file] [generated_text_length]
+        python markov_chain.py [input_file] [generated_text_length] [first words]
     """)
 
 def main():
@@ -116,12 +116,17 @@ def main():
 
     markov_chain = MarkovChain(original_text, chain_length=2)
 
+    first_words = None
+
     if len(sys.argv) < 3:
         print(markov_chain.generate_text())
         exit()
 
+    if len(sys.argv) > 4:
+        first_words = (sys.argv[3], sys.argv[4])
+
     generated_text_length = int(sys.argv[2])
-    print(markov_chain.generate_text(length=generated_text_length))
+    print(markov_chain.generate_text(length=generated_text_length, first_words=first_words))
 
 if __name__ == "__main__":
     main()
